@@ -28,10 +28,20 @@ async function getOptions(isDev: boolean) {
 }
 
 export const scrape = async (id: string) => {
+    const start = Date.now()
     const options = await getOptions(isDev);
-    const browser = await playwright.launchChromium(options)
-    const page = await browser.newPage();
-    await page.goto(`https://www.imdb.com/title/${id}`);
+    const browser = await playwright.launchChromium({ ...options })
+    console.log(`-- launch chronium : ${(Date.now() - start) / 1000}sec`)
+    const page = await browser.newPage({
+        javaScriptEnabled: false
+    });
+    console.log(`-- new page : ${(Date.now() - start) / 1000}sec`)
+    await page.goto(`https://www.imdb.com/title/${id}`)
+    console.log(`-- goto page : ${(Date.now() - start) / 1000}sec`)
     const text = await page.locator('[aria-label="View User Ratings"]').first().innerText()
-    return parseRating(text)
+    console.log(`-- locate : ${(Date.now() - start) / 1000}sec`)
+    const parsed = parseRating(text)
+    console.log(`-- parse : ${(Date.now() - start) / 1000}sec`)
+
+    return parsed
 }
