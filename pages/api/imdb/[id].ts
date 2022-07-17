@@ -26,7 +26,9 @@ export default async function handler(
   } catch (e) {
     if (e instanceof ScrapeError) {
       res.status(e.code).end(e.message)
+      return
     }
+    console.error(e)
     res.status(500).end('server error')
   }
 }
