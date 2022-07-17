@@ -1,4 +1,5 @@
 import * as playwright from "playwright-aws-lambda";
+import { ScrapeError } from "./exception";
 import { parseRating } from "./parser";
 
 const exePath = process.platform === 'win32'
@@ -31,17 +32,26 @@ export const scrape = async (id: string) => {
     const start = Date.now()
     const options = await getOptions(isDev);
     const browser = await playwright.launchChromium({ ...options })
-    console.log(`-- launch chronium : ${(Date.now() - start) / 1000}sec`)
-    const page = await browser.newPage({
-        javaScriptEnabled: false
-    });
-    console.log(`-- new page : ${(Date.now() - start) / 1000}sec`)
-    await page.goto(`https://www.imdb.com/title/${id}`)
-    console.log(`-- goto page : ${(Date.now() - start) / 1000}sec`)
-    const text = await page.locator('[aria-label="View User Ratings"]').first().innerText()
-    await browser.close()
-    console.log(`-- locate : ${(Date.now() - start) / 1000}sec`)
-    const parsed = parseRating(text)
-    console.log(`-- parse : ${(Date.now() - start) / 1000}sec`)
-    return parsed
+    try {
+        console.log(`-- launch chronium : ${(Date.now() - start) / 1000}sec`)
+        const page = await browser.newPage({
+            javaScriptEnabled: false
+        });
+        console.log(`-- new page : ${(Date.now() - start) / 1000}sec`)
+        const ret = await page.goto(`https://www.imdb.com/title/${id}`)
+        if (ret?.status() !== 200) {
+            throw new ScrapeError(`${id} is not found`, ret ? ret.status() : 404)
+        }
+        console.log(`-- goto page : ${(Date.now() - start) / 1000}sec`)
+        const text = await page.locator('[aria-label="View User Ratings"]').first().innerText()
+        console.log(`-- locate : ${(Date.now() - start) / 1000}sec`)
+        const parsed = parseRating(text)
+        console.log(`-- parse : ${(Date.now() - start) / 1000}sec`)
+        return parsed
+    } catch (e) {
+        console.log(e instanceof ScrapeError)
+        throw e
+    } finally {
+        await browser.close()
+    }
 }
