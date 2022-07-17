@@ -39,9 +39,9 @@ export const scrape = async (id: string) => {
     await page.goto(`https://www.imdb.com/title/${id}`)
     console.log(`-- goto page : ${(Date.now() - start) / 1000}sec`)
     const text = await page.locator('[aria-label="View User Ratings"]').first().innerText()
+    await browser.close()
     console.log(`-- locate : ${(Date.now() - start) / 1000}sec`)
     const parsed = parseRating(text)
     console.log(`-- parse : ${(Date.now() - start) / 1000}sec`)
-
     return parsed
 }
